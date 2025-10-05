@@ -1,323 +1,341 @@
-// Configurações do jogo
+// script.js - CLUBE PINGUIM - CÓDIGO COMPLETO E CORRIGIDO
+console.log('=== CARREGANDO SCRIPT.JS ===');
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const miniMapCanvas = document.getElementById('miniMapCanvas');
 const miniMapCtx = miniMapCanvas.getContext('2d');
-const startScreen = document.getElementById('startScreen');
-const gameOverScreen = document.getElementById('gameOverScreen');
-const coordinatesElement = document.getElementById('coordinates');
-const itemsElement = document.getElementById('itemsColetados');
-const tempoElement = document.getElementById('tempoJogo');
-const finalItemsElement = document.getElementById('finalItems');
-const finalTimeElement = document.getElementById('finalTime');
 
-// Variáveis do jogo
-let game = {
-    running: false,
-    itemsColetados: 0,
+// Configurações do jogo
+const config = {
+    tileSize: 64,
+    playerSpeed: 3,
+    runMultiplier: 2,
     totalItems: 10,
-    tempoInicio: 0,
-    tempoAtual: 0
+    mapWidth: 1600,
+    mapHeight: 1200
 };
 
-// Mapa maior para exploração
-const mapa = {
-    largura: 2000,
-    altura: 2000,
-    tiles: []
+// Sistema de personagens CORRIGIDO
+const characters = {
+    pinguim: {
+        name: 'Pinguim',
+        speed: 3,
+        size: { width: 40, height: 60 },
+        color: { body: '#000000', belly: '#FFFFFF' },
+        special: null
+    },
+    pinguim_rapido: {
+        name: 'Pinguim Veloz',
+        speed: 3.6,
+        size: { width: 40, height: 60 },
+        color: { body: '#2C3E50', belly: '#ECF0F1' },
+        special: 'speed'
+    },
+    pinguim_forte: {
+        name: 'Pinguim Forte',
+        speed: 2.5,
+        size: { width: 50, height: 70 },
+        color: { body: '#E74C3C', belly: '#FADBD8' },
+        special: 'strong'
+    },
+    pinguim_ninja: {
+        name: 'Pinguim Ninja',
+        speed: 3.2,
+        size: { width: 35, height: 55 },
+        color: { body: '#2C3E50', belly: '#566573' },
+        special: 'stealth'
+    }
 };
 
-// Jogador
-const player = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    width: 25,
-    height: 35,
-    speed: 3,
-    color: '#4a69bd',
-    direcao: 'down' // down, up, left, right
+// Estado do jogo
+let gameState = {
+    player: {
+        x: 400,
+        y: 300,
+        width: 40,
+        height: 60,
+        speed: 3,
+        direction: 'down',
+        isRunning: false,
+        character: 'pinguim'
+    },
+    camera: {
+        x: 0,
+        y: 0
+    },
+    items: [],
+    collectedItems: 0,
+    gameTime: 0,
+    gameStarted: false,
+    gameOver: false,
+    lastTime: 0,
+    xpGanho: 0
 };
 
-// Câmera
-const camera = {
-    x: 0,
-    y: 0
-};
+// Mapa do jogo
+const gameMap = [
+    [1,1,1,1,1,2,2,2,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,2,2,2,2,2,1,3,3,3,1,1,4,1,1,1,1,1,1,1,1,1],
+    [1,1,1,2,2,2,2,2,2,2,3,3,3,1,1,1,1,1,5,1,1,1,1,1,1],
+    [1,1,2,2,2,2,2,2,2,2,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,2,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [2,2,2,2,2,2,2,2,2,2,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,2,2,2,2,2,2,2,2,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,2,2,2,2,2,2,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,2,2,2,2,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,2,2,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1,1,1,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1]
+];
 
-// Itens para coletar
-let itens = [];
+// Itens do jogo
+const gameItems = ['🎁', '🎣', '⛸️', '🏒', '🧤', '🧣', '🎿', '🕶️', '🧊', '🐟'];
+
+// Cores dos tiles
+const tileColors = {
+    1: '#E0F7FA', // Neve
+    2: '#B3E5FC', // Gelo  
+    3: '#81D4FA', // Água
+    4: '#E0F7FA', // Casa (com ícone)
+    5: '#E0F7FA'  // Igloo (com ícone)
+};
 
 // Controles
-const keys = {
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    Shift: false
-};
+const keys = {};
 
-// Inicializar mapa
-function inicializarMapa() {
-    // Gerar tiles do mapa (grama, água, pedras)
-    for (let x = 0; x < mapa.largura; x += 50) {
-        for (let y = 0; y < mapa.altura; y += 50) {
-            const tipo = Math.random() > 0.9 ? 'water' : 
-                        Math.random() > 0.85 ? 'rock' : 'grass';
-            mapa.tiles.push({ x, y, tipo });
-        }
-    }
+// Função principal de inicialização
+function initGame(characterType) {
+    console.log('Inicializando jogo com personagem:', characterType);
     
-    // Gerar itens aleatórios
-    itens = [];
-    for (let i = 0; i < game.totalItems; i++) {
-        itens.push({
-            x: Math.random() * (mapa.largura - 30),
-            y: Math.random() * (mapa.altura - 30),
-            width: 20,
-            height: 20,
-            coletado: false,
-            tipo: ['diamond', 'star', 'coin'][Math.floor(Math.random() * 3)],
-            cor: ['#ff6b6b', '#ffe66d', '#4ecdc4'][Math.floor(Math.random() * 3)]
+    // Configurar personagem
+    const character = characters[characterType] || characters.pinguim;
+    gameState.player.character = characterType;
+    gameState.player.speed = character.speed;
+    gameState.player.width = character.size.width;
+    gameState.player.height = character.size.height;
+    
+    // Resetar estado
+    gameState.player.x = 400;
+    gameState.player.y = 300;
+    gameState.camera.x = 0;
+    gameState.camera.y = 0;
+    gameState.collectedItems = 0;
+    gameState.gameTime = 0;
+    gameState.gameStarted = true;
+    gameState.gameOver = false;
+    gameState.xpGanho = 0;
+    
+    // Gerar itens
+    generateItems();
+    
+    // Configurar controles
+    setupControls();
+    
+    // Iniciar UI
+    updateUI();
+    
+    // Iniciar loop do jogo
+    gameState.lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+    
+    console.log('Jogo inicializado com sucesso!');
+}
+
+function generateItems() {
+    gameState.items = [];
+    for (let i = 0; i < config.totalItems; i++) {
+        let validPosition = false;
+        let x, y;
+        
+        while (!validPosition) {
+            x = 100 + Math.floor(Math.random() * (config.mapWidth - 200));
+            y = 100 + Math.floor(Math.random() * (config.mapHeight - 200));
+            
+            const distance = Math.sqrt(
+                Math.pow(x - gameState.player.x, 2) + 
+                Math.pow(y - gameState.player.y, 2)
+            );
+            
+            if (distance > 300) {
+                validPosition = true;
+            }
+        }
+        
+        gameState.items.push({
+            x: x,
+            y: y,
+            width: 30,
+            height: 30,
+            type: i,
+            collected: false
         });
     }
+    console.log('Itens gerados:', gameState.items.length);
 }
 
-// Event listeners para controles
-window.addEventListener('keydown', (e) => {
-    if (keys.hasOwnProperty(e.key)) {
+function setupControls() {
+    window.addEventListener('keydown', (e) => {
         keys[e.key] = true;
-        updatePlayerDirection();
-    }
-});
+        if (e.key === 'Shift') gameState.player.isRunning = true;
+    });
 
-window.addEventListener('keyup', (e) => {
-    if (keys.hasOwnProperty(e.key)) {
+    window.addEventListener('keyup', (e) => {
         keys[e.key] = false;
-        updatePlayerDirection();
-    }
-});
-
-function updatePlayerDirection() {
-    if (keys.ArrowUp) player.direcao = 'up';
-    else if (keys.ArrowDown) player.direcao = 'down';
-    else if (keys.ArrowLeft) player.direcao = 'left';
-    else if (keys.ArrowRight) player.direcao = 'right';
-}
-
-// Funções do jogo
-function startGame() {
-    startScreen.style.display = 'none';
-    game.running = true;
-    game.itemsColetados = 0;
-    game.tempoInicio = Date.now();
-    player.x = mapa.largura / 2;
-    player.y = mapa.altura / 2;
-    inicializarMapa();
-    updateUI();
-    gameLoop();
-}
-
-function restartGame() {
-    gameOverScreen.style.display = 'none';
-    startGame();
-}
-
-function updateCamera() {
-    camera.x = player.x - canvas.width / 2;
-    camera.y = player.y - canvas.height / 2;
-    
-    // Limites da câmera
-    camera.x = Math.max(0, Math.min(camera.x, mapa.largura - canvas.width));
-    camera.y = Math.max(0, Math.min(camera.y, mapa.altura - canvas.height));
+        if (e.key === 'Shift') gameState.player.isRunning = false;
+    });
 }
 
 function updatePlayer() {
-    let speed = keys.Shift ? player.speed * 2 : player.speed;
-    
-    if (keys.ArrowUp) player.y -= speed;
-    if (keys.ArrowDown) player.y += speed;
-    if (keys.ArrowLeft) player.x -= speed;
-    if (keys.ArrowRight) player.x += speed;
-    
-    // Limites do jogador no mapa
-    player.x = Math.max(player.width / 2, Math.min(player.x, mapa.largura - player.width / 2));
-    player.y = Math.max(player.height / 2, Math.min(player.y, mapa.altura - player.height / 2));
-    
+    let speed = gameState.player.speed;
+    if (gameState.player.isRunning) {
+        speed *= config.runMultiplier;
+    }
+
+    if (keys['ArrowUp']) gameState.player.y -= speed;
+    if (keys['ArrowDown']) gameState.player.y += speed;
+    if (keys['ArrowLeft']) gameState.player.x -= speed;
+    if (keys['ArrowRight']) gameState.player.x += speed;
+
+    // Limites do mapa
+    gameState.player.x = Math.max(0, Math.min(config.mapWidth - gameState.player.width, gameState.player.x));
+    gameState.player.y = Math.max(0, Math.min(config.mapHeight - gameState.player.height, gameState.player.y));
+
     updateCamera();
 }
 
-function checkItemCollision() {
-    itens.forEach(item => {
-        if (!item.coletado &&
-            player.x < item.x + item.width &&
-            player.x + player.width > item.x &&
-            player.y < item.y + item.height &&
-            player.y + player.height > item.y) {
+function updateCamera() {
+    gameState.camera.x = gameState.player.x - canvas.width / 2 + gameState.player.width / 2;
+    gameState.camera.y = gameState.player.y - canvas.height / 2 + gameState.player.height / 2;
+
+    gameState.camera.x = Math.max(0, Math.min(config.mapWidth - canvas.width, gameState.camera.x));
+    gameState.camera.y = Math.max(0, Math.min(config.mapHeight - canvas.height, gameState.camera.y));
+}
+
+function checkCollisions() {
+    gameState.items.forEach(item => {
+        if (!item.collected &&
+            gameState.player.x < item.x + item.width &&
+            gameState.player.x + gameState.player.width > item.x &&
+            gameState.player.y < item.y + item.height &&
+            gameState.player.y + gameState.player.height > item.y) {
             
-            item.coletado = true;
-            game.itemsColetados++;
+            item.collected = true;
+            gameState.collectedItems++;
+            gameState.xpGanho += 10; // +10 XP por item
             updateUI();
             
-            if (game.itemsColetados >= game.totalItems) {
-                gameComplete();
-            }
-        }
-    });
-}
-
-function updateUI() {
-    coordinatesElement.textContent = `Posição: X: ${Math.floor(player.x)}, Y: ${Math.floor(player.y)}`;
-    itemsElement.textContent = `Itens Coletados: ${game.itemsColetados}/${game.totalItems}`;
-    
-    if (game.running) {
-        game.tempoAtual = Math.floor((Date.now() - game.tempoInicio) / 1000);
-        tempoElement.textContent = `Tempo: ${game.tempoAtual}s`;
-    }
-}
-
-function gameComplete() {
-    game.running = false;
-    finalItemsElement.textContent = game.itemsColetados;
-    finalTimeElement.textContent = game.tempoAtual;
-    gameOverScreen.style.display = 'flex';
-}
-
-// Funções de desenho
-function drawMap() {
-    // Desenhar tiles visíveis
-    mapa.tiles.forEach(tile => {
-        const screenX = tile.x - camera.x;
-        const screenY = tile.y - camera.y;
-        
-        if (screenX > -50 && screenX < canvas.width && screenY > -50 && screenY < canvas.height) {
-            switch(tile.tipo) {
-                case 'grass':
-                    ctx.fillStyle = '#27ae60';
-                    break;
-                case 'water':
-                    ctx.fillStyle = '#3498db';
-                    break;
-                case 'rock':
-                    ctx.fillStyle = '#7f8c8d';
-                    break;
-            }
-            ctx.fillRect(screenX, screenY, 50, 50);
+            console.log('Item coletado! Total:', gameState.collectedItems, 'XP:', gameState.xpGanho);
             
-            // Detalhes nos tiles
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.strokeRect(screenX, screenY, 50, 50);
+            if (gameState.collectedItems === config.totalItems) {
+                endGame();
+            }
         }
     });
+}
+
+function drawMap() {
+    const tileSize = config.tileSize;
+    
+    for (let y = 0; y < gameMap.length; y++) {
+        for (let x = 0; x < gameMap[y].length; x++) {
+            const tileX = x * tileSize - gameState.camera.x;
+            const tileY = y * tileSize - gameState.camera.y;
+            
+            if (tileX + tileSize > 0 && tileX < canvas.width && 
+                tileY + tileSize > 0 && tileY < canvas.height) {
+                
+                const tileType = gameMap[y][x];
+                ctx.fillStyle = tileColors[tileType];
+                ctx.fillRect(tileX, tileY, tileSize, tileSize);
+                
+                if (tileType === 4) {
+                    ctx.font = '24px Arial';
+                    ctx.fillText('🏠', tileX + 20, tileY + 40);
+                } else if (tileType === 5) {
+                    ctx.font = '24px Arial';
+                    ctx.fillText('⛺', tileX + 20, tileY + 40);
+                }
+                
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.strokeRect(tileX, tileY, tileSize, tileSize);
+            }
+        }
+    }
 }
 
 function drawPlayer() {
-    const screenX = player.x - camera.x;
-    const screenY = player.y - camera.y;
+    const screenX = gameState.player.x - gameState.camera.x;
+    const screenY = gameState.player.y - gameState.camera.y;
+    const character = characters[gameState.player.character];
+
+    // Corpo do pinguim
+    ctx.fillStyle = character.color.body;
+    ctx.fillRect(screenX, screenY, gameState.player.width, gameState.player.height);
     
-    // Corpo do jogador
-    ctx.fillStyle = player.color;
-    ctx.fillRect(screenX - player.width / 2, screenY - player.height / 2, player.width, player.height);
-    
-    // Detalhes do jogador baseado na direção
-    ctx.fillStyle = '#2c3e50';
+    // Barriga branca
+    ctx.fillStyle = character.color.belly;
+    ctx.fillRect(screenX + 5, screenY + 15, gameState.player.width - 10, gameState.player.height - 20);
     
     // Olhos
-    switch(player.direcao) {
-        case 'up':
-            ctx.fillRect(screenX - 5, screenY - 10, 4, 4);
-            ctx.fillRect(screenX + 1, screenY - 10, 4, 4);
-            break;
-        case 'down':
-            ctx.fillRect(screenX - 5, screenY + 6, 4, 4);
-            ctx.fillRect(screenX + 1, screenY + 6, 4, 4);
-            break;
-        case 'left':
-            ctx.fillRect(screenX - 8, screenY - 5, 4, 4);
-            ctx.fillRect(screenX - 8, screenY + 1, 4, 4);
-            break;
-        case 'right':
-            ctx.fillRect(screenX + 4, screenY - 5, 4, 4);
-            ctx.fillRect(screenX + 4, screenY + 1, 4, 4);
-            break;
-    }
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(screenX + 10, screenY + 10, 5, 5);
+    ctx.fillRect(screenX + gameState.player.width - 15, screenY + 10, 5, 5);
+    
+    // Bico
+    ctx.fillStyle = '#FFA500';
+    ctx.beginPath();
+    ctx.moveTo(screenX + gameState.player.width / 2, screenY + 20);
+    ctx.lineTo(screenX + gameState.player.width / 2 - 5, screenY + 30);
+    ctx.lineTo(screenX + gameState.player.width / 2 + 5, screenY + 30);
+    ctx.fill();
 }
 
 function drawItems() {
-    itens.forEach(item => {
-        if (!item.coletado) {
-            const screenX = item.x - camera.x;
-            const screenY = item.y - camera.y;
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    gameState.items.forEach(item => {
+        if (!item.collected) {
+            const screenX = item.x - gameState.camera.x;
+            const screenY = item.y - gameState.camera.y;
             
-            if (screenX > -30 && screenX < canvas.width && screenY > -30 && screenY < canvas.height) {
-                ctx.fillStyle = item.cor;
+            if (screenX + item.width > 0 && screenX < canvas.width && 
+                screenY + item.height > 0 && screenY < canvas.height) {
                 
-                switch(item.tipo) {
-                    case 'diamond':
-                        // Diamante
-                        ctx.beginPath();
-                        ctx.moveTo(screenX + item.width / 2, screenY);
-                        ctx.lineTo(screenX + item.width, screenY + item.height / 2);
-                        ctx.lineTo(screenX + item.width / 2, screenY + item.height);
-                        ctx.lineTo(screenX, screenY + item.height / 2);
-                        ctx.closePath();
-                        ctx.fill();
-                        break;
-                    case 'star':
-                        // Estrela
-                        ctx.beginPath();
-                        for (let i = 0; i < 5; i++) {
-                            const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
-                            const x = screenX + item.width / 2 + Math.cos(angle) * item.width / 2;
-                            const y = screenY + item.height / 2 + Math.sin(angle) * item.height / 2;
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                        ctx.closePath();
-                        ctx.fill();
-                        break;
-                    case 'coin':
-                        // Moeda
-                        ctx.beginPath();
-                        ctx.arc(screenX + item.width / 2, screenY + item.height / 2, item.width / 2, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillStyle = '#ffeaa7';
-                        ctx.beginPath();
-                        ctx.arc(screenX + item.width / 2, screenY + item.height / 2, item.width / 4, 0, Math.PI * 2);
-                        ctx.fill();
-                        break;
-                }
-                
-                // Brilho
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.beginPath();
-                ctx.arc(screenX + 5, screenY + 5, 3, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillText(gameItems[item.type], screenX + 15, screenY + 15);
             }
         }
     });
+    
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 }
 
 function drawMiniMap() {
-    // Limpar minimapa
-    miniMapCtx.fillStyle = 'rgba(12, 36, 97, 0.9)';
+    miniMapCtx.fillStyle = '#2C3E50';
     miniMapCtx.fillRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
     
-    // Escala para o minimapa
-    const scaleX = miniMapCanvas.width / mapa.largura;
-    const scaleY = miniMapCanvas.height / mapa.altura;
+    const scaleX = miniMapCanvas.width / config.mapWidth;
+    const scaleY = miniMapCanvas.height / config.mapHeight;
     
-    // Desenhar jogador no minimapa
-    miniMapCtx.fillStyle = player.color;
+    miniMapCtx.fillStyle = '#E74C3C';
     miniMapCtx.fillRect(
-        player.x * scaleX - 3,
-        player.y * scaleY - 3,
+        gameState.player.x * scaleX - 3,
+        gameState.player.y * scaleY - 3,
         6, 6
     );
     
-    // Desenhar itens no minimapa
-    itens.forEach(item => {
-        if (!item.coletado) {
-            miniMapCtx.fillStyle = item.cor;
+    miniMapCtx.fillStyle = '#F1C40F';
+    gameState.items.forEach(item => {
+        if (!item.collected) {
             miniMapCtx.fillRect(
                 item.x * scaleX - 2,
                 item.y * scaleY - 2,
@@ -325,36 +343,63 @@ function drawMiniMap() {
             );
         }
     });
-    
-    // Borda do minimapa
-    miniMapCtx.strokeStyle = '#4a69bd';
-    miniMapCtx.lineWidth = 2;
-    miniMapCtx.strokeRect(0, 0, miniMapCanvas.width, miniMapCanvas.height);
 }
 
-// Loop principal do jogo
-function gameLoop() {
-    if (!game.running) return;
+function updateUI() {
+    document.getElementById('coordinates').textContent = 
+        `Posição: X: ${Math.floor(gameState.player.x)}, Y: ${Math.floor(gameState.player.y)}`;
+    document.getElementById('itemsColetados').textContent = 
+        `Itens Coletados: ${gameState.collectedItems}/${config.totalItems}`;
+    document.getElementById('tempoJogo').textContent = 
+        `Tempo: ${Math.floor(gameState.gameTime)}s`;
+    document.getElementById('personagemSelecionado').textContent = 
+        `Personagem: ${characters[gameState.player.character].name}`;
+}
 
-    // Limpar canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function gameLoop(currentTime) {
+    if (!gameState.gameStarted || gameState.gameOver) return;
     
-    // Desenhar e atualizar
+    const deltaTime = (currentTime - gameState.lastTime) / 1000;
+    gameState.lastTime = currentTime;
+    gameState.gameTime += deltaTime;
+    
+    // Limpar canvas
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Atualizar lógica
+    updatePlayer();
+    checkCollisions();
+    
+    // Renderizar
     drawMap();
     drawItems();
     drawPlayer();
     drawMiniMap();
-    
-    updatePlayer();
-    checkItemCollision();
     updateUI();
     
     requestAnimationFrame(gameLoop);
 }
 
-// Inicialização
-inicializarMapa();
-drawMap();
-drawItems();
-drawPlayer();
-drawMiniMap();
+function endGame() {
+    gameState.gameOver = true;
+    
+    // Calcular XP adicional baseado no tempo
+    const xpBonus = Math.max(0, 50 - Math.floor(gameState.gameTime / 10));
+    const xpTotal = gameState.xpGanho + xpBonus;
+    
+    document.getElementById('finalItems').textContent = gameState.collectedItems;
+    document.getElementById('finalTime').textContent = Math.floor(gameState.gameTime);
+    document.getElementById('xpGanho').textContent = xpTotal;
+    document.getElementById('finalCharacter').textContent = characters[gameState.player.character].name;
+    document.getElementById('gameOverScreen').style.display = 'block';
+    
+    console.log('Jogo finalizado! XP Total:', xpTotal);
+    
+    // Aqui você pode adicionar uma chamada AJAX para salvar o XP no banco
+    // saveXPToDatabase(xpTotal);
+}
+
+// Debug final
+console.log('=== SCRIPT.JS CARREGADO COM SUCESSO ===');
+console.log('Função initGame disponível:', typeof initGame);
