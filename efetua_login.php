@@ -10,7 +10,7 @@ if ($_POST['email'] && $_POST['senha']) {
     
     if (UsuarioDAO::validarUsuario($dados)) {
         $_SESSION['usuario_logado'] = $_POST['email'];
-        header("Location: home.html");
+        header("Location: home.phpl");
         exit();
     } else {
         $_SESSION['msg'] = "Email ou senha inválidos!";
